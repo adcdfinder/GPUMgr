@@ -77,6 +77,11 @@ void mini_AddXandY1(void *ka_ptr, void *stream)
   // printf("mini_AddXandY1: gpu mgr AsyncDtoH end!\n");
 }
 
+void startNoiseKernel(int blocksize, int numblocks, void *stream){
+  cudaStreamt *stream_ptr = (cudaStream_t *)
+  noiseKernel<<<blocksize, numblocks, 0, *((cudaStream_t)stream_ptr)>>>;
+}
+
 int mini_GetResult(void)
 {
   return *h_sum;

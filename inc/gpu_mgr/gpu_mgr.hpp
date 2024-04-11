@@ -1,5 +1,6 @@
 #ifndef GPU_MGR_HPP_
 #define GPU_MGR_HPP_
+#define GPU_GPU
 
 #include <mutex>
 #include <condition_variable>

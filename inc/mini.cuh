@@ -14,6 +14,7 @@ extern void mini_PostFunc0();
 extern void mini_PostFunc1();
 extern int mini_GetResult(void);
 extern void mini_Deinit(void);
+extern void startNoiseKernel(int, int, void *);
 
 
 #endif

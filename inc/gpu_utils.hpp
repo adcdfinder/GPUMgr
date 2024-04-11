@@ -25,7 +25,7 @@ typedef void *cuStreamPtr_t;
 // Args for kernel
 typedef void *cuKrnArgPtr_t;
 
-typedef std::function<void(cuKrnArgPtr_t, void *)> GPU_Kernel_Function; // TODO: add used_resource as args of GPU_Kernel_Function
+typedef std::function<void(cuKrnArgPtr_t, void *, int blocksize = 1 , int blocknum = 1)> GPU_Kernel_Function; // TODO: add used_resource as args of GPU_Kernel_Function
 typedef std::function<void(void)> GPU_Post_Function;
 typedef void *GPU_Krn_Func_DataPtr;
 

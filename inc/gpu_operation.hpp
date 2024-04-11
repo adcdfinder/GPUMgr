@@ -20,6 +20,8 @@ private:
   std::mutex cv_mutex_;
   std::condition_variable cv_;
   int cb_type;//用户提交的kernel类型，RT BE
+  int blocksize = 0 ;
+  int numBlocks = 0 ;
 
 public:
   GPU_Operation();
@@ -85,7 +87,7 @@ void GPU_Operation::run(int ploicy_type,void *stm_ptr)
     this->g_krn_func_(this->g_data_ptr_, 0);//使用default stream
   }
   else{
-    this->g_krn_func_(this->g_data_ptr_, stm_ptr);
+    this->g_krn_func_(this->g_data_ptr_, stm_ptr, this->blocksize, this->numBlocks);
   }
 }
 
@@ -114,6 +116,14 @@ void GPU_Operation::setstreamid(int stm_id){
 
 gmgrStream GPU_Operation::getstreamid(){
   return stream_idx_;
+}
+
+void GPU_Operation::setBlockSize(int e_block_size){
+  this.blocksize = e_block_size;
+}
+
+void GPU_Operation::setBlockNum(int e_block_num){
+  this.numBlocks = e_block_num;
 }
 
 #endif
