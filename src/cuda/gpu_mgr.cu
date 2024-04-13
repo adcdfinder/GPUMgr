@@ -25,7 +25,7 @@ cudaStream_t *m_stream;                // Only initialized by GPU_Init at gpu_mg
 cudaStream_t *m_streamWork;
 cudaStream_t *m_streamNoise;
 std::function<void (std::mutex*,std::condition_variable*)> notifyGpuMgr; // Only assigned by GPU_Init at gpu_mgr.cu
-cudaDeviceProp prop;
+extern cudaDeviceProp prop;
 
 void GPU_Init(int policy_type,int stream_num,std::function<void (std::mutex*,std::condition_variable*)> notify_callback)
 {
@@ -169,7 +169,7 @@ void launchNoiseWorkLoad(){
   smNum = prop.multiProcessorCount;
   threadsPerSM = (prop.MaxThreadsPerSM - maxBlockSizeInWait) / 2;
 
-  startNoiseKernel(1, 1, getNoiseStream());
+  startNoiseKernel(threadsPerSM, smNum, getNoiseStream());
 }
 #else
 

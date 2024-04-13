@@ -8,7 +8,7 @@
 #include "mini_type.hpp"
 
 extern void mini_AddXandY0(cuKrnArgPtr_t ka_ptr, void *stream_ptr);
-extern void mini_AddXandY1(cuKrnArgPtr_t ka_ptr, void *stream_ptr);
+extern void mini_AddXandY1(cuKrnArgPtr_t ka_ptr, void *stream_ptr, int, int);
 extern void mini_Init();
 extern void mini_PostFunc0();
 extern void mini_PostFunc1();

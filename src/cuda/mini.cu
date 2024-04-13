@@ -65,13 +65,13 @@ void mini_AddXandY0(void *ka_ptr, void *stream)
   // printf("mini_AddXandY0: gpu mgr AsyncDtoH end!\n");
 }
 
-void mini_AddXandY1(void *ka_ptr, void *stream)
+void mini_AddXandY1(void *ka_ptr, void *stream, int blocksize = 1 , int numblocks = 1)
 {
   cudaStream_t *stream_ptr = (cudaStream_t *)stream;
   uint32_t x = ((mini_t *)ka_ptr)->x;
   uint32_t y = ((mini_t *)ka_ptr)->y;
 
-  kAddXandY1<<<1, 1, 0, *stream_ptr>>>(d_sum, x, y);
+  kAddXandY1<<<blocksize, numblocks, 0, *stream_ptr>>>(d_sum, x, y);
 
   cuMemCpyAsyncDtoH(h_sum, d_sum,sizeof(uint32_t)*MINI_N,*stream_ptr);
   // printf("mini_AddXandY1: gpu mgr AsyncDtoH end!\n");

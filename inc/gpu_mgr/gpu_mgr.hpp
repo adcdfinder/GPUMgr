@@ -222,7 +222,17 @@ public:
         g_op_it = waiting_gpu_Rtops_.begin();//从wait队列头部取操作
         g_op = (GPU_Operation *)(*g_op_it);
         //launch到stream
-        g_op->run(multi_strm_por,getCuHighStreamPtr());
+        #ifdef GPU_GPU 
+          if(g_op->getIsAffinity()){
+            executeAffinityTask(g_op, getWorkStream()); 
+          }else{
+
+            g_op->run(multi_strm_por,getWorkStream());
+          }
+          
+        #else
+          g_op->run(multi_strm_por,getCuHighStreamPtr());
+        #endif
         //launch hostFunc
         LaunchHostFunc(IsSync,g_op->getPostFunc(),g_op->getcvMutex(),g_op->getcv(),
                               getCuHighStreamPtr(),(void *)g_op);
@@ -277,7 +287,7 @@ public:
   //对用户开放的接口
   //user thread调用的接口，作用：launch Operation到gpu_mgr
   void gmgrLaunchKAndPFunc(int cb_type,GPU_Kernel_Function g_krn_func,GPU_Post_Function g_post_func,
-                GPU_Krn_Func_DataPtr data_ptr,gmgrStream stream_id){
+                GPU_Krn_Func_DataPtr data_ptr, bool isAffinity = false , int blocksize = 1, int numblocks = 1){
     if(cb_type != cb_rt_type && cb_type != cb_beORgeneral_type){
       printf("cb type error! please choose 'cb_rt_type' or 'cb_beORgeneral_type'\n");
       return;
@@ -294,7 +304,7 @@ public:
     }
     
     //使用new，保证user thread退出后，Operation依旧可用
-    GPU_Operation *gpu_opt = new GPU_Operation(cb_type, g_krn_func, g_post_func, (void *)data_ptr, stream_id);
+    GPU_Operation *gpu_opt = new GPU_Operation(cb_type, g_krn_func, g_post_func, (void *)data_ptr, isAffinity, blocksize, numblocks);
     // g_op(cb_type, g_krn_func, g_post_func, (void *)data_ptr);
 
     //user thread只管提交操作到wait队列，然后就阻塞

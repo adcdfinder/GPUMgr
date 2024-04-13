@@ -20,8 +20,9 @@ private:
   std::mutex cv_mutex_;
   std::condition_variable cv_;
   int cb_type;//用户提交的kernel类型，RT BE
-  int blocksize = 0 ;
-  int numBlocks = 0 ;
+  bool isAffinity_;
+  int blocksize_ = 0 ;
+  int numBlocks_ = 0 ;
 
 public:
   GPU_Operation();
@@ -30,7 +31,9 @@ public:
       GPU_Kernel_Function g_krn_func,
       GPU_Post_Function g_post_func,
       GPU_Krn_Func_DataPtr data_ptr,
-      gmgrStream stream_id);
+      bool isAffinity,
+      int blocksize,
+      int numBlocks);
   ~GPU_Operation();
   void setGpuKernelFunction(GPU_Kernel_Function g_krn_func);
   void setGpuPostFunction(GPU_Post_Function g_post_func);
@@ -43,6 +46,7 @@ public:
   std::mutex *getcvMutex();
   std::condition_variable *getcv();
   int getcbType();
+  int getIsAffinity();
 };
 
 GPU_Operation::GPU_Operation(
@@ -50,12 +54,16 @@ GPU_Operation::GPU_Operation(
     GPU_Kernel_Function g_krn_func,
     GPU_Post_Function g_post_func,
     GPU_Krn_Func_DataPtr data_ptr,
-    gmgrStream stream_id)
+    bool isAffinity,
+    int blocksize,
+    int numBlocks)
     : cb_type(cb_type),
       g_krn_func_(g_krn_func),
       g_post_func_(g_post_func),
       g_data_ptr_(data_ptr),
-      stream_idx_(stream_id)
+      isAffinity_(isAffinity),
+      blocksize_(blocksize),
+      numBlocks_(numBlocks)
 {
   if(cb_type != cb_rt_type && cb_type != cb_beORgeneral_type){
     printf("cb type error! please choose 'cb_rt_type' or 'cb_beORgeneral_type'\n");
@@ -87,7 +95,7 @@ void GPU_Operation::run(int ploicy_type,void *stm_ptr)
     this->g_krn_func_(this->g_data_ptr_, 0);//使用default stream
   }
   else{
-    this->g_krn_func_(this->g_data_ptr_, stm_ptr, this->blocksize, this->numBlocks);
+    this->g_krn_func_(this->g_data_ptr_, stm_ptr, this->blocksize_, this->numBlocks_);
   }
 }
 
@@ -119,11 +127,15 @@ gmgrStream GPU_Operation::getstreamid(){
 }
 
 void GPU_Operation::setBlockSize(int e_block_size){
-  this.blocksize = e_block_size;
+  this.blocksize_ = e_block_size;
 }
 
 void GPU_Operation::setBlockNum(int e_block_num){
-  this.numBlocks = e_block_num;
+  this.numBlocks_ = e_block_num;
+}
+
+bool GPU_Operation::getIsAffinity(){
+  return this.isAffinity_;
 }
 
 #endif
