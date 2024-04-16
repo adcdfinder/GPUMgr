@@ -46,7 +46,9 @@ public:
   std::mutex *getcvMutex();
   std::condition_variable *getcv();
   int getcbType();
-  int getIsAffinity();
+  bool getIsAffinity();
+  void setBlockSize(int);
+  void setBlockNum(int);
 };
 
 GPU_Operation::GPU_Operation(
@@ -92,7 +94,7 @@ void GPU_Operation::setGpuKernelFunctionDataPtr(GPU_Krn_Func_DataPtr data_ptr)
 void GPU_Operation::run(int ploicy_type,void *stm_ptr)
 {
   if(ploicy_type == single_strm){
-    this->g_krn_func_(this->g_data_ptr_, 0);//使用default stream
+    this->g_krn_func_(this->g_data_ptr_, 0, this->blocksize_, this->numBlocks_);//使用default stream
   }
   else{
     this->g_krn_func_(this->g_data_ptr_, stm_ptr, this->blocksize_, this->numBlocks_);
@@ -127,15 +129,15 @@ gmgrStream GPU_Operation::getstreamid(){
 }
 
 void GPU_Operation::setBlockSize(int e_block_size){
-  this.blocksize_ = e_block_size;
+  blocksize_ = e_block_size;
 }
 
 void GPU_Operation::setBlockNum(int e_block_num){
-  this.numBlocks_ = e_block_num;
+  numBlocks_ = e_block_num;
 }
 
 bool GPU_Operation::getIsAffinity(){
-  return this.isAffinity_;
+  return isAffinity_;
 }
 
 #endif

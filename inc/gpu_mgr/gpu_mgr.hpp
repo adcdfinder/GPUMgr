@@ -224,7 +224,7 @@ public:
         //launch到stream
         #ifdef GPU_GPU 
           if(g_op->getIsAffinity()){
-            executeAffinityTask(g_op, getWorkStream()); 
+            executeAffinityTask(g_op, 1); 
           }else{
 
             g_op->run(multi_strm_por,getWorkStream());
@@ -287,7 +287,7 @@ public:
   //对用户开放的接口
   //user thread调用的接口，作用：launch Operation到gpu_mgr
   void gmgrLaunchKAndPFunc(int cb_type,GPU_Kernel_Function g_krn_func,GPU_Post_Function g_post_func,
-                GPU_Krn_Func_DataPtr data_ptr, bool isAffinity = false , int blocksize = 1, int numblocks = 1){
+                GPU_Krn_Func_DataPtr data_ptr, bool isAffinity = false , int blocksize = 1, int numblocks = 1 , int affinitySMid = 0){
     if(cb_type != cb_rt_type && cb_type != cb_beORgeneral_type){
       printf("cb type error! please choose 'cb_rt_type' or 'cb_beORgeneral_type'\n");
       return;
@@ -298,7 +298,7 @@ public:
       return;
     }
 
-    if(stream_id < 0 || stream_id >= stream_num){
+    if(affinitySMid < 0 || affinitySMid >= stream_num){
       printf("stream Error! please choose correct stream!\n");
       return;
     }

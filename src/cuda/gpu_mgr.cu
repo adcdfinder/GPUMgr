@@ -1,5 +1,6 @@
 #ifndef GPU_MGR_CU__
 #define GPU_MGR_CU__
+#endif
 
 #define  GPU_GPU
 
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <unistd.h>
+#include <vector>
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -16,16 +18,30 @@
 #include "mini.cuh"
 
 #ifdef GPU_GPU
+using namespace std;
 
-std::vector<GPU_Operation> waitQ;
+std::vector<GPU_Operation *> waitQ ;
 
+struct HostFuncData
+{
+  bool IsNotify;
+  std::function<void(void)> *Post_Function;
+  std::mutex *gopt_cv_mutex;
+  std::condition_variable *gopt_cv;
+  cudaStream_t *gopt_stm;
+  void *gpu_opt;
+};
 
 
 cudaStream_t *m_stream;                // Only initialized by GPU_Init at gpu_mgr.cu
 cudaStream_t *m_streamWork;
 cudaStream_t *m_streamNoise;
+cudaStream_t *m_streamWithlow;
+cudaStream_t *m_streamWithhigh;
+
 std::function<void (std::mutex*,std::condition_variable*)> notifyGpuMgr; // Only assigned by GPU_Init at gpu_mgr.cu
 extern cudaDeviceProp prop;
+bool bExecuting = false; 
 
 void GPU_Init(int policy_type,int stream_num,std::function<void (std::mutex*,std::condition_variable*)> notify_callback)
 {
@@ -45,17 +61,17 @@ void GPU_Init(int policy_type,int stream_num,std::function<void (std::mutex*,std
   int priority_high, priority_low;
   cudaDeviceGetStreamPriorityRange(&priority_low,&priority_high);
   // create streams with highest and lowest available priorities
-  cudaStream_t st_high, st_low;
-  cudaStreamCreateWithPriority(&(m_streamWNoise),cudaStreamDefault, priority_high);
+  // cudaStream_t st_high, st_low;
+  cudaStreamCreateWithPriority(&(m_streamNoise[0]),cudaStreamDefault, priority_high);
 
-  cudaStreamCreateWithPriority(&(m_streamWork),cudaStreamDefault, priority_low);
+  cudaStreamCreateWithPriority(&(m_streamWork[0]),cudaStreamDefault, priority_low);
 
   int device;
   cudaGetDevice(&device);
   cudaGetDeviceProperties(&prop, device);
   notifyGpuMgr = notify_callback;
 
-  bool bExecuting = false;
+  bExecuting = false;
   #if 0
   // For debug
   printf("Size of cudaStream_t is %ld\n", sizeof(cudaStream_t));
@@ -101,6 +117,24 @@ cuStreamPtr_t getWorkStream(){
 
 cuStreamPtr_t getNoiseStream(){
   return (void *)&(m_streamNoise);
+}
+
+cuStreamPtr_t getCuStreamPtr(int stream_idx)
+{
+  // TODO: Range Check
+  return (void *)&(m_stream[stream_idx]);
+}
+
+cuStreamPtr_t getCuLowStreamPtr(int stream_idx)
+{
+  // TODO: Range Checkm_stream
+  return (void *)&(m_streamWithlow[stream_idx]);
+}
+
+cuStreamPtr_t getCuHighStreamPtr()
+{
+  // TODO: Range Checkm_stream
+  return (void *)&(m_streamWithhigh[0]);
 }
 
 void LaunchHostFunc(bool IsSync,
@@ -154,34 +188,25 @@ void submitTowaitQe(GPU_Operation *g_op)
   if(!bExecuting){
     waitQ.push_back(g_op);
   }else{
-    g_op->run(m_streamWork, NULL);
+    g_op->run(multi_strm_por, m_streamWork);
   }
 }
 
+void launchNoiseWorkLoad(){
+  // get noise kernel threads
+  int maxBlockSizeInWait = 0;
+  int smNum = prop.multiProcessorCount;
+  int threadsPerSM = (prop.maxThreadsPerMultiProcessor - maxBlockSizeInWait) / 2;
+
+  // startNoiseKernel(threadsPerSM, smNum, (void *)getNoiseStream());
+}
 
 void executeAffinityTask(GPU_Operation *g_op, int sm_id){
   launchNoiseWorkLoad();
 
 }
 
-void launchNoiseWorkLoad(){
-  // get noise kernel threads
-  smNum = prop.multiProcessorCount;
-  threadsPerSM = (prop.MaxThreadsPerSM - maxBlockSizeInWait) / 2;
-
-  startNoiseKernel(threadsPerSM, smNum, getNoiseStream());
-}
 #else
-
-struct HostFuncData
-{
-  bool IsNotify;
-  std::function<void(void)> *Post_Function;
-  std::mutex *gopt_cv_mutex;
-  std::condition_variable *gopt_cv;
-  cudaStream_t *gopt_stm;
-  void *gpu_opt;
-};
 
 
 cudaStream_t *m_stream;                // Only initialized by GPU_Init at gpu_mgr.cu

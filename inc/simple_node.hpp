@@ -10,6 +10,8 @@ class SimpleNode : public rclcpp::Node
 public:
   // rclcpp::CallbackGroup::SharedPtr cbg_sub_trig_;
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig0_;
+  rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig_normal;
+  rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig_affinity;
   
   GpuMgr *g_mgr = NULL;
 

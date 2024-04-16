@@ -12,7 +12,7 @@ int stopFlag = 0;
 
 __global__ void noiseKernel(uint32_t smID){
   if(smID == getSMID()){
-    asm("exit;")
+    asm("exit;");
   }
   while(!g_stopFlag){
     MySleep(1); // sleep for 1 millisecond
@@ -78,8 +78,8 @@ void mini_AddXandY1(void *ka_ptr, void *stream, int blocksize = 1 , int numblock
 }
 
 void startNoiseKernel(int blocksize, int numblocks, void *stream){
-  cudaStreamt *stream_ptr = (cudaStream_t *)
-  noiseKernel<<<blocksize, numblocks, 0, *((cudaStream_t)stream_ptr)>>>;
+  cudaStream_t *stream_ptr = (cudaStream_t *)stream;
+  noiseKernel<<<blocksize, numblocks, 0, (*(cudaStream_t *)stream_ptr)>>>(1);
 }
 
 int mini_GetResult(void)

@@ -1,6 +1,6 @@
 #ifndef GPU_MGR_CUH__
 #define GPU_MGR_CUH__
-#ifndef define GPU_GPU
+#ifndef GPU_GPU
 #define GPU_GPU
 #endif
 
@@ -34,6 +34,8 @@ extern void LaunchHostFunc(bool IsSync,
                     void *g_op);
 const char *GetRuntimeError(cudaError_t error);
 #ifdef GPU_GPU
-extern void executeAffinityTask(GPU_Operation *g_op, int sm_id);
+extern cuStreamPtr_t getWorkStream();
+extern cuStreamPtr_t getNoiseStream();
+void executeAffinityTask(GPU_Operation *g_op, int sm_id);
 #endif
 #endif
