@@ -80,12 +80,15 @@ public:
   {
     RCLCPP_INFO(
         this->get_logger(), "Trig normal\n");
+    float elpaseTime = 0.0;
+    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA(), false, &elpaseTime);
+    // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
 
-    mini_t m_mini0 = {10, msg->data};
-    g_mgr->gmgrLaunchKAndPFunc(cb_rt_type,mini_AddXandY1,mini_PostFunc1,(void *)&m_mini0, false, 512, 3);
-
+    cudaDeviceSynchronize();
     RCLCPP_INFO(
-        this->get_logger(), "Mini0 %d + %d \nUser Thread END!\n", m_mini0.x, m_mini0.y);
+        this->get_logger(), "Elapsed time is %g \n", elpaseTime);
+   
+
   }
   void trig_cb_affinity(const std_msgs::msg::Int32::ConstSharedPtr msg)
   {
@@ -94,15 +97,16 @@ public:
     //获取一个stream
     // gmgrStream stream = g_mgr->gmgrCreateStream(cb_beORgeneral_type);
     printf("Test printf");
-    mini_t m_mini0 = {10, msg->data};
     
     //选择callback type 并传入kunc PostFunc data
-    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA());
+    float elpaseTime = 0.0;
+    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA(), true, &elpaseTime);
     // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
 
     cudaDeviceSynchronize();
     RCLCPP_INFO(
-        this->get_logger(), "Affinity %d + %d \nUser Thread END!\n", m_mini0.x, m_mini0.y);
+        this->get_logger(), "Elapsed time is %g \n", elpaseTime);
+   
   }
 
   void setGpuMgr(GpuMgr *gm){

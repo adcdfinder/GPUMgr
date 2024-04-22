@@ -10,7 +10,7 @@
 extern void mini_AddXandY0(cuKrnArgPtr_t ka_ptr, void *stream_ptr);
 extern void mini_AddXandY1(cuKrnArgPtr_t ka_ptr, void *stream_ptr, int, int);
 extern void resetNoiseFlag();
-extern void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream);
+extern void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream, bool, float *);
 extern void mini_AddXandY1_Affinity(void *ka_ptr, void *stream, int blocksize , int numblocks );
 extern void mini_Init();
 extern void mini_PostFunc0();

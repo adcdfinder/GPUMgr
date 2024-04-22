@@ -58,6 +58,14 @@ __global__ void kAddXandY1(uint32_t *sum, uint32_t x, uint32_t y)
   return;
 }
 
+// __global__ void normalTask(uint32_t *block, uint32_t* timestamp, uint32_t *smId){
+//   int index = blockIdx.x * blockDim.x + threadIdx.x;
+//   block[index] = blockIdx.x;
+//   timestamp[index] = clock();
+//   smId[index] = getSMID();
+
+// }
+
 __global__ void testKernel()
 {
   printf("Current task is running on %d sm .\n", getSMID());
@@ -196,21 +204,41 @@ void mini_Deinit(void){
   cudaFreeHost(h_sum);
 }
 
-void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream){
+void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream, bool bPolicyApplied , float * elapse){
   int m = 9;
   int smNum = prop.multiProcessorCount;
   int threadsPerBlock = (prop.maxThreadsPerBlock - 256)/m;
   int threadsPerSM = prop.maxThreadsPerMultiProcessor;
 
-  printf("Executing kernel");
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+  cudaEventQuery(start);
+  // printf("Executing kernel");
+
   startNoiseKernel(threadsPerBlock, smNum, noiseStream);
   mini_AddXandY1_Affinity(nullptr, workStream, 512, 8);
+  if(!bPolicyApplied){
+    cudaDeviceSynchronize();
+  }
   mini_AddXandY1(nullptr, workStream, 86, 14);
+  if(!bPolicyApplied){
+
+    cudaDeviceSynchronize();
+  }
+
   mini_AddXandY1(nullptr, workStream, 256, 1);
   
-  // cudaDeviceSynchronize();
+  cudaDeviceSynchronize();
   resetNoiseFlag();
 
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(elapse, start, stop);
+
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 
 
 }

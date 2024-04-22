@@ -31,6 +31,7 @@ ament_target_dependencies(qtest rclcpp std_msgs)
 # add CUDA
 
 FIND_PACKAGE(CUDA REQUIRED)
+# SET(CUDA_NVCC_FLAGS "-arch=sm_75 --resource-usage " CACHE STRING "nvcc flags" FORCE)
 SET(CUDA_NVCC_FLAGS "-arch=sm_75 --resource-usage " CACHE STRING "nvcc flags" FORCE)
 #SET(CUDA_NVCC_FLAGS -arch=sm_75 --resource-usage -Xcompiler -fPIC)
 SET (CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)

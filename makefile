@@ -31,7 +31,7 @@ affinity:
 	ros2 topic pub /affinity std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
 
 normal:
-	ros2 topic pub /affinity std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
+	ros2 topic pub /normal std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
 
 s0:
 	ros2 topic pub /s0 std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
