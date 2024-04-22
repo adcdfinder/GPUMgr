@@ -40,6 +40,9 @@ public:
   GpuMgr(int p_type,bool IsSync,int s_num);
   ~GpuMgr();
 
+  void* getWorkStreamA();
+  void* getNoiseStreamA();
+
   //对用户开放的接口
   //获取一个stream id  对用户而言的“create”
   gmgrStream gmgrCreateStream(int cb_type)
@@ -224,7 +227,7 @@ public:
         //launch到stream
         #ifdef GPU_GPU 
           if(g_op->getIsAffinity()){
-            executeAffinityTask(g_op, 1); 
+            executeAffinityTask((void *)g_op, 1); 
           }else{
 
             g_op->run(multi_strm_por,getWorkStream());
@@ -391,5 +394,14 @@ GpuMgr::~GpuMgr()
   // Destroy CUDA context
   GPU_Deinit();
 }
+
+void* GpuMgr::getWorkStreamA(){
+  return (void*)getWorkStream();
+}
+
+void* GpuMgr::getNoiseStreamA(){
+  return (void*)getNoiseStream();
+}
+
 
 #endif

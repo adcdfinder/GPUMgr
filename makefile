@@ -1,6 +1,6 @@
 # This makefile is not invovled the organization of ROS2 build
 # It's a simple script to help running cmd lines
-PATH_TO_LIBGPUMGRINTF=/home/llw/CUDA/ROS2_GPU/ros2_gpu/install/ros2_gpu/lib/ros2_gpu/libcuGpuMgrIntf.so
+PATH_TO_LIBGPUMGRINTF=/home/hwang/GPUMgr/install/ros2_gpu/lib/ros2_gpu/libcuGpuMgrIntf.so
 
 build-colcon:
 	colcon build --parallel-workers 12
@@ -26,6 +26,12 @@ MINI_IN ?= 1
 
 mini:
 	ros2 topic pub /mini std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
+
+affinity:
+	ros2 topic pub /affinity std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
+
+normal:
+	ros2 topic pub /affinity std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
 
 s0:
 	ros2 topic pub /s0 std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once

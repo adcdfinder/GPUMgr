@@ -4,6 +4,7 @@
 #include "std_msgs/msg/int32.hpp"
 #include "mini.cuh"
 #include "gpu_mgr/gpu_mgr.hpp"
+#include "gpu_mgr/gpu_mgr.cuh"
 #include "gpu_utils.hpp"
 class SimpleNode : public rclcpp::Node
 {
@@ -79,18 +80,12 @@ public:
   {
     RCLCPP_INFO(
         this->get_logger(), "Trig normal\n");
-    //获取一个stream
-    // gmgrStream stream = g_mgr->gmgrCreateStream(cb_beORgeneral_type);
 
     mini_t m_mini0 = {10, msg->data};
-    //选择callback type 并传入kunc PostFunc data
-    // g_mgr->gmgrLaunchKAndPFunc(cb_beORgeneral_type,mini_AddXandY0,mini_PostFunc0,(void *)&m_mini0,stream);
-    
-    //选择callback type 并传入kunc PostFunc data
     g_mgr->gmgrLaunchKAndPFunc(cb_rt_type,mini_AddXandY1,mini_PostFunc1,(void *)&m_mini0, false, 512, 3);
 
     RCLCPP_INFO(
-        this->get_logger(), "Mini0 %d + %d \nUsre Thread END!\n", m_mini0.x, m_mini0.y);
+        this->get_logger(), "Mini0 %d + %d \nUser Thread END!\n", m_mini0.x, m_mini0.y);
   }
   void trig_cb_affinity(const std_msgs::msg::Int32::ConstSharedPtr msg)
   {
@@ -98,14 +93,16 @@ public:
         this->get_logger(), "Trig affinity\n");
     //获取一个stream
     // gmgrStream stream = g_mgr->gmgrCreateStream(cb_beORgeneral_type);
-
+    printf("Test printf");
     mini_t m_mini0 = {10, msg->data};
     
     //选择callback type 并传入kunc PostFunc data
-    g_mgr->gmgrLaunchKAndPFunc(cb_rt_type,mini_AddXandY1,mini_PostFunc1,(void *)&m_mini0,true);
+    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA());
+    // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
 
+    cudaDeviceSynchronize();
     RCLCPP_INFO(
-        this->get_logger(), "Mini0 %d + %d \nUsre Thread END!\n", m_mini0.x, m_mini0.y);
+        this->get_logger(), "Affinity %d + %d \nUser Thread END!\n", m_mini0.x, m_mini0.y);
   }
 
   void setGpuMgr(GpuMgr *gm){

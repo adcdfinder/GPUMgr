@@ -1,8 +1,10 @@
-#include "mini_type.hpp"
+#include "../../inc/mini_type.hpp"
 #include "util.cu"
-#include "gpu_mgr/gpu_mgr.cuh"
-
+#include "../../inc/gpu_mgr/gpu_mgr.cuh"
+#include <stdio.h>
+// #define TEST_DEBUG
 #define MINI_N 10
+
 
 uint32_t *h_sum;
 uint32_t *d_sum;
@@ -12,10 +14,11 @@ int stopFlag = 0;
 
 __global__ void noiseKernel(uint32_t smID){
   if(smID == getSMID()){
+    printf("exit on %d .\n", smID);
     asm("exit;");
   }
   while(!g_stopFlag){
-    MySleep(1); // sleep for 1 millisecond
+     MySleep(1); // sleep for 1 millisecond
   }
 
 }
@@ -35,6 +38,7 @@ void stopNoiseFlag(){
   stopFlag = 1;
   syncNoiseKernel();
   cudaDeviceSynchronize();
+  printf("success ");
 }
 
 __global__ void kAddXandY0(uint32_t *sum, uint32_t x, uint32_t y)
@@ -48,9 +52,27 @@ __global__ void kAddXandY0(uint32_t *sum, uint32_t x, uint32_t y)
 __global__ void kAddXandY1(uint32_t *sum, uint32_t x, uint32_t y)
 {
   sum[1] = x + y;
+  printf("Current task is running on %d sm .", getSMID());
   // busySleep(50000000); // busy sleep about 40ms
   // MySleep(500);//sleep 500ms
   return;
+}
+
+__global__ void testKernel()
+{
+  printf("Current task is running on %d sm .\n", getSMID());
+
+}
+
+__global__ void testAffinityKernel()
+{
+  if(blockIdx.x == (gridDim.x - 1)){
+    g_stopFlag = 1;
+  }
+
+  printf("Affinity task is running on %d sm .\n", getSMID());
+
+  MySleep(500);//sleep 500ms
 }
 
 void mini_AddXandY0(void *ka_ptr, void *stream)
@@ -67,19 +89,42 @@ void mini_AddXandY0(void *ka_ptr, void *stream)
 
 void mini_AddXandY1(void *ka_ptr, void *stream, int blocksize = 1 , int numblocks = 1)
 {
-  cudaStream_t *stream_ptr = (cudaStream_t *)stream;
-  uint32_t x = ((mini_t *)ka_ptr)->x;
-  uint32_t y = ((mini_t *)ka_ptr)->y;
+  // cudaStream_t *stream_ptr = (cudaStream_t *)stream;
 
-  kAddXandY1<<<blocksize, numblocks, 0, *stream_ptr>>>(d_sum, x, y);
 
-  cuMemCpyAsyncDtoH(h_sum, d_sum,sizeof(uint32_t)*MINI_N,*stream_ptr);
-  // printf("mini_AddXandY1: gpu mgr AsyncDtoH end!\n");
+  printf("testkernel is executing. /n");
+
+  testKernel<<< numblocks, blocksize, 0 ,*((cudaStream_t *)stream)>>>();
+  // cudaDeviceSynchronize();
+  // *d_sum = 10;
+  return;
+
+
+  // uint32_t x = ((mini_t *)ka_ptr)->x;
+  // uint32_t y = ((mini_t *)ka_ptr)->y;
+
+  // kAddXandY1<<<blocksize, numblocks, 0, *stream_ptr>>>(d_sum, x, y);
+
+  // cuMemCpyAsyncDtoH(h_sum, d_sum,sizeof(uint32_t)*MINI_N,*stream_ptr);
+  // // printf("mini_AddXandY1: gpu mgr AsyncDtoH end!\n");
+}
+
+void mini_AddXandY1_Affinity(void *ka_ptr, void *stream, int blocksize = 1 , int numblocks = 1)
+{
+  // cudaStream_t *stream_ptr = (cudaStream_t *)stream;
+
+  printf("testkernel is executing. /n");
+
+  testAffinityKernel<<< numblocks, blocksize,  0 ,*((cudaStream_t *)stream)>>>();
+  // cudaDeviceSynchronize();
+  // *d_sum = 10;
+  return;
+  
 }
 
 void startNoiseKernel(int blocksize, int numblocks, void *stream){
   cudaStream_t *stream_ptr = (cudaStream_t *)stream;
-  noiseKernel<<<blocksize, numblocks, 0, (*(cudaStream_t *)stream_ptr)>>>(1);
+  noiseKernel<<<numblocks, blocksize,  0, (*(cudaStream_t *)stream_ptr)>>>(5);
 }
 
 int mini_GetResult(void)
@@ -150,3 +195,69 @@ void mini_Init(void)
 void mini_Deinit(void){
   cudaFreeHost(h_sum);
 }
+
+void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream){
+  int m = 9;
+  int smNum = prop.multiProcessorCount;
+  int threadsPerBlock = (prop.maxThreadsPerBlock - 256)/m;
+  int threadsPerSM = prop.maxThreadsPerMultiProcessor;
+
+  printf("Executing kernel");
+  startNoiseKernel(threadsPerBlock, smNum, noiseStream);
+  mini_AddXandY1_Affinity(nullptr, workStream, 512, 8);
+  mini_AddXandY1(nullptr, workStream, 86, 14);
+  mini_AddXandY1(nullptr, workStream, 256, 1);
+  
+  // cudaDeviceSynchronize();
+  resetNoiseFlag();
+
+
+
+}
+#ifdef TEST_DEBUG
+int main(){
+  
+  cudaStream_t *m_stream = (cudaStream_t *)malloc(  sizeof(cudaStream_t *));
+  cudaStream_t *m_stream_noise = (cudaStream_t *)malloc(  sizeof(cudaStream_t *));
+  int priority_high, priority_low;
+
+  cudaDeviceProp prop;
+  int device;
+  cudaGetDevice(&device);
+  cudaGetDeviceProperties(&prop, 0);
+
+  
+  cudaDeviceGetStreamPriorityRange(&priority_low,&priority_high);
+  // create streams with highest and lowest available priorities
+  // cudaStream_t st_high, st_low;
+
+  cudaStreamCreateWithPriority(&(m_stream[0]),cudaStreamDefault, priority_low);
+  cudaStreamCreateWithPriority(&(m_stream_noise[0]),cudaStreamDefault, priority_high);
+
+  printf("the highest priority is %d . \n", priority_high);
+  printf("the lowest priority is %d . \n", priority_low);
+  
+  int smNum = prop.multiProcessorCount;
+  int threadsPerBlock = prop.maxThreadsPerBlock - 500;
+  int threadsPerSM = prop.maxThreadsPerMultiProcessor;
+  printf("Compute capability: %d.%d\n", prop.major, prop.minor);
+  printf("SM num: %d.\n", smNum);
+
+  // return 0;
+  printf("the max threads perblock is %d . \n", threadsPerBlock);
+  printf("the max threads per sm is %d . \n", threadsPerSM);
+  // startNoiseKernel(threadsPerBlock, smNum, m_stream_noise );
+
+  // mini_AddXandY1_Affinity(nullptr, m_stream , 512, 8);
+  mini_AddXandY1(nullptr, m_stream , 86, 14);
+  // mini_AddXandY1(nullptr, m_stream , 256, 1);
+  
+  // cudaDeviceSynchronize();
+  resetNoiseFlag();
+
+
+  return 0;
+
+
+}
+#endif

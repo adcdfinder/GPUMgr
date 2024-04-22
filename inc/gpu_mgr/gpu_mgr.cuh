@@ -12,9 +12,9 @@
 #include <cuda_runtime.h>
 #include <functional> // for std::function
 
-#include "gpu_utils.hpp"
+#include "../gpu_utils.hpp"
 
-cudaDeviceProp prop;
+extern cudaDeviceProp prop;
 extern cudaStream_t *m_stream;
 extern cudaStream_t *m_streamWithlow;
 extern cudaStream_t *m_streamWithhigh;
@@ -36,6 +36,6 @@ const char *GetRuntimeError(cudaError_t error);
 #ifdef GPU_GPU
 extern cuStreamPtr_t getWorkStream();
 extern cuStreamPtr_t getNoiseStream();
-void executeAffinityTask(GPU_Operation *g_op, int sm_id);
+extern void executeAffinityTask(void *g_op, int sm_id);
 #endif
 #endif

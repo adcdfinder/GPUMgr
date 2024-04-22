@@ -16,6 +16,7 @@
 #include "gpu_mgr/gpu_mgr.cuh"
 #include "gpu_utils.hpp"
 #include "mini.cuh"
+#include "gpu_operation.hpp"
 
 #ifdef GPU_GPU
 using namespace std;
@@ -40,7 +41,7 @@ cudaStream_t *m_streamWithlow;
 cudaStream_t *m_streamWithhigh;
 
 std::function<void (std::mutex*,std::condition_variable*)> notifyGpuMgr; // Only assigned by GPU_Init at gpu_mgr.cu
-extern cudaDeviceProp prop;
+cudaDeviceProp prop;
 bool bExecuting = false; 
 
 void GPU_Init(int policy_type,int stream_num,std::function<void (std::mutex*,std::condition_variable*)> notify_callback)
@@ -101,7 +102,10 @@ void CUDART_CB launchFuncCallback(void *data){
   }
   else{//只有异步方式执行
     //run post Func
-    (*(tran_data.Post_Function))();
+    if(tran_data.Post_Function){
+      
+      (*(tran_data.Post_Function))();
+    }
     //执行到此处时，表示一个GPU_Operation全部被执行完毕
     //delete new的GPU_Operation对象
     printf("launchFuncCallback: run delete gpu opt!\n");
@@ -201,10 +205,28 @@ void launchNoiseWorkLoad(){
   // startNoiseKernel(threadsPerSM, smNum, (void *)getNoiseStream());
 }
 
-void executeAffinityTask(GPU_Operation *g_op, int sm_id){
+void executeAffinityTask(void *g_op, int sm_id){
+  GPU_Operation * ga_op = (GPU_Operation *)g_op;
   launchNoiseWorkLoad();
 
 }
+
+// void launchNoiseTest(){
+//   int smNum = prop.multiProcessorCount;
+//   int threadsPerBlock = prop.maxThreadsPerBlock - 500;
+//   int threadsPerSM = prop.maxThreadsPerMultiProcessor;
+
+//   startNoiseKernel(threadsPerBlock, smNum, getNoiseStream());
+//   mini_AddXandY1_Affinity(nullptr, getWorkStream(), 512, 8);
+//   mini_AddXandY1(nullptr, getWorkStream(), 86, 14);
+//   mini_AddXandY1(nullptr, getWorkStream(), 256, 1);
+  
+//   // cudaDeviceSynchronize();
+//   resetNoiseFlag();
+
+
+  
+// }
 
 #else
 
@@ -252,6 +274,7 @@ void GPU_Deinit(void)
 
 void CUDART_CB launchFuncCallback(void *data){
   pid_t pid = getpid();
+  printf("launchFuncCallback %lu: Run launchFuncCallback!\n",pid);
   printf("launchFuncCallback %lu: Run launchFuncCallback!\n",pid);
   HostFuncData tran_data = *((HostFuncData *)data);
 
@@ -341,6 +364,7 @@ const char *GetRuntimeError(cudaError_t error)
     else
         return NULL;
 }
+
 
 
 #endif
