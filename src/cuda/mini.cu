@@ -2,12 +2,16 @@
 #include "util.cu"
 #include "../../inc/gpu_mgr/gpu_mgr.cuh"
 #include <stdio.h>
+#include <sstream>
+#include <string>
 // #define TEST_DEBUG
 #define MINI_N 10
 
 
 uint32_t *h_sum;
 uint32_t *d_sum;
+int m = 1;
+float occupy = 0.0;
 //ROS2 需要gpu执行的操作
 __device__ volatile int g_stopFlag = 0;
 int stopFlag = 0;
@@ -51,8 +55,11 @@ __global__ void kAddXandY0(uint32_t *sum, uint32_t x, uint32_t y)
 
 __global__ void kAddXandY1(uint32_t *sum, uint32_t x, uint32_t y)
 {
-  sum[1] = x + y;
-  printf("Current task is running on %d sm .", getSMID());
+  // MySleep(50000);
+  for(int i  = 0; i < 500;i++){
+    continue;
+  }
+  // printf("Current task is running on %d sm .", getSMID());
   // busySleep(50000000); // busy sleep about 40ms
   // MySleep(500);//sleep 500ms
   return;
@@ -68,7 +75,19 @@ __global__ void kAddXandY1(uint32_t *sum, uint32_t x, uint32_t y)
 
 __global__ void testKernel()
 {
-  printf("Current task is running on %d sm .\n", getSMID());
+  // MySleep(50000);
+  int start = clock();
+  while(clock() - start < 100000){
+    
+  }
+  // for(int i  = 0; i < 5000; i++){
+  //   continue;
+  // }
+  // // printf("Current task is running on %d sm .", getSMID());
+  // busySleep(50000000); // busy sleep about 40ms
+  // MySleep(500);//sleep 500ms
+  return;
+
 
 }
 
@@ -80,7 +99,13 @@ __global__ void testAffinityKernel()
 
   printf("Affinity task is running on %d sm .\n", getSMID());
 
-  MySleep(500);//sleep 500ms
+  int start =clock();
+  while(clock() - start < 100000){
+   
+  }
+  // for(int i  = 0; i < 5000; i++){
+  //   continue;
+  // }
 }
 
 void mini_AddXandY0(void *ka_ptr, void *stream)
@@ -100,7 +125,7 @@ void mini_AddXandY1(void *ka_ptr, void *stream, int blocksize = 1 , int numblock
   // cudaStream_t *stream_ptr = (cudaStream_t *)stream;
 
 
-  printf("testkernel is executing. /n");
+  // printf("testkernel is executing. /n");
 
   testKernel<<< numblocks, blocksize, 0 ,*((cudaStream_t *)stream)>>>();
   // cudaDeviceSynchronize();
@@ -204,12 +229,35 @@ void mini_Deinit(void){
   cudaFreeHost(h_sum);
 }
 
+float get_gpu_utilization() {
+    FILE* pipe = popen("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits", "r");
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+
+    char buffer[128];
+    float gpu_utilization = -1.0f;
+
+    if (fgets(buffer, 128, pipe) != nullptr) {
+        // Read the output and parse GPU utilization
+        std::istringstream ss(buffer);
+        std::string token;
+        std::getline(ss, token, ',');  // Ignore the index
+        std::getline(ss, token, ',');  // Get utilization
+        gpu_utilization = std::stof(token);
+    }
+
+    pclose(pipe);
+    return gpu_utilization;
+}
+
 void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream, bool bPolicyApplied , float * elapse){
-  int m = 9;
+  // int m = 9;
   int smNum = prop.multiProcessorCount;
   int threadsPerBlock = (prop.maxThreadsPerBlock - 256)/m;
-  int threadsPerSM = prop.maxThreadsPerMultiProcessor;
+  float currentOcc = 0.0;
 
+  //for record the elapse
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
@@ -217,21 +265,30 @@ void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream, b
   cudaEventQuery(start);
   // printf("Executing kernel");
 
-  startNoiseKernel(threadsPerBlock, smNum, noiseStream);
-  mini_AddXandY1_Affinity(nullptr, workStream, 512, 8);
+  // Kernerl operations
+  startNoiseKernel(threadsPerBlock, smNum * m , noiseStream);
+  mini_AddXandY1_Affinity(nullptr, workStream, prop.maxThreadsPerBlock, 16);
   if(!bPolicyApplied){
     cudaDeviceSynchronize();
   }
-  mini_AddXandY1(nullptr, workStream, 86, 14);
+  mini_AddXandY1(nullptr, workStream, 256, 1);
   if(!bPolicyApplied){
 
     cudaDeviceSynchronize();
   }
+
+  if(bPolicyApplied){
+    currentOcc = get_gpu_utilization();
+  }
+  
 
   mini_AddXandY1(nullptr, workStream, 256, 1);
   
   cudaDeviceSynchronize();
   resetNoiseFlag();
+
+
+  //for record the elapse
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
@@ -240,8 +297,11 @@ void launchNoiseTest(cudaDeviceProp prop, void *noiseStream, void *workStream, b
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
+  *elapse = occupy;
 
 }
+
+
 #ifdef TEST_DEBUG
 int main(){
   
