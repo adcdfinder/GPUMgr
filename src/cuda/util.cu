@@ -32,14 +32,14 @@ __device__ __inline__ void busySleep(clock_t clock_count)
 //     }
 // }
 
-__device__ void MySleep(unsigned int ms)
-{
-    unsigned int ns = 1000000;//1 ms
-    //printf("ns:%u\n",ns);
-    for(int i = 0; i <= ms; i++){
-        asm volatile("nanosleep.u32 %0;" :: "r"(ns));
-    }
-}
+// __device__ void MySleep(unsigned int ms)
+// {
+//     unsigned int ns = 1000000;//1 ms
+//     //printf("ns:%u\n",ns);
+//     for(int i = 0; i <= ms; i++){
+//         asm volatile("nanosleep.u32 %0;" :: "r"(ns));
+//     }
+// }
 
 static __device__ __inline__ uint32_t getThreadNumPerBlock(void){
     return blockDim.x * blockDim.y * blockDim.z;
