@@ -81,7 +81,7 @@ public:
     RCLCPP_INFO(
         this->get_logger(), "Trig normal\n");
     float elpaseTime = 0.0;
-    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA(), false, &elpaseTime);
+    launchNoiseTest(false, &elpaseTime);
     // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
 
     cudaDeviceSynchronize();
@@ -100,7 +100,7 @@ public:
     
     //选择callback type 并传入kunc PostFunc data
     float elpaseTime = 0.0;
-    launchNoiseTest(prop, g_mgr->getNoiseStreamA(), g_mgr->getWorkStreamA(), true, &elpaseTime);
+    launchNoiseTest(true, &elpaseTime);
     // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
 
     cudaDeviceSynchronize();
