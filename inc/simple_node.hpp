@@ -13,6 +13,7 @@ public:
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig0_;
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig_normal;
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig_affinity;
+  rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub_trig_slice;
   
   GpuMgr *g_mgr = NULL;
 
@@ -55,6 +56,15 @@ public:
             this,
             std::placeholders::_1),
         sub_trig1_opt);
+    sub_trig_slice = this->create_subscription<std_msgs::msg::Int32>(
+        "slice",
+        rclcpp::QoS(10),
+        std::bind(
+            &SimpleNode::trig_cb_slice,
+            this,
+            std::placeholders::_1),
+        sub_trig1_opt);
+
 
   }
   
@@ -108,6 +118,22 @@ public:
         this->get_logger(), "Elapsed time is %g \n", elpaseTime);
    
   }
+
+  void trig_cb_slice(const std_msgs::msg::Int32::ConstSharedPtr msg)
+  {
+    RCLCPP_INFO(
+        this->get_logger(), "Trig slice\n");
+    
+    float elpaseTime = 0.0;
+    launchSliceTest( &elpaseTime);
+    // g_mgr->gmgrLaunchKAndPFunc(cb_rt_type, mini_AddXandY1, NULL, (void *)&m_mini0, true, 512, 2, 1);
+
+    cudaDeviceSynchronize();
+    RCLCPP_INFO(
+        this->get_logger(), "Elapsed time is %g \n", elpaseTime);
+   
+  }
+
 
   void setGpuMgr(GpuMgr *gm){
     g_mgr = gm;

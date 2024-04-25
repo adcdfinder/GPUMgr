@@ -33,6 +33,9 @@ affinity:
 normal:
 	ros2 topic pub /normal std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
 
+slice:
+	ros2 topic pub /slice std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
+
 s0:
 	ros2 topic pub /s0 std_msgs/msg/Int32 "{data: ${MINI_IN}}" --once
 
