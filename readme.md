@@ -47,12 +47,9 @@ make qtest # Setup GPU Manager node and one simple test node
 
 In 2nd terminal
 ```shell
-make wake_loop # Publish one msg to activate GPU Manager monitor loop
-make end_loop # Publish one msg to deactivate GPU Manager monitor loop
+make affinity # Publish one msg to trigger affinity computing  
 ```
-
-In 2nd and other terminals
+Or In 2nd terminal
 ```shell
-make mini # Publish one digit to test node and let GPU compute
-make mini MINI_IN=5 # Publish 5 to test node and let GPU compute
+make normal # Publish one msg to trigger normal computing  
 ```
