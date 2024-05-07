@@ -39,6 +39,8 @@ __global__ void vectorAddPartial(const float* A, const float* B, float* C, int o
    if (i < offset + sliceSize)
    {
        C[i] = A[i] + B[i];
+   }else{
+       C[i] = A[i] + B[i];
    }
 }
 
@@ -419,6 +421,12 @@ void launchSliceTest(float * elapse){
    }
  
    // 执行向量加法，每个切片使用不同的流
+   int blocksize = 256;
+   int gridsize = 1;
+  //  void *funcPointer = vectorAddPartial;
+   cudaOccupancyMaxPotentialBlockSize(&gridsize, &blocksize, &vectorAddPartial, 0, 0);
+   printf("The grid size is %d \n", gridsize);
+   printf("The block size is %d \n", blocksize);
    int threadsPerBlock = 256;
    for (int slice = 0; slice < numSlices; slice++) {
        int offset = slice * sliceSize;
