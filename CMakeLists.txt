@@ -26,6 +26,10 @@ add_executable(qtest src/test.cpp)
 target_include_directories(qtest PUBLIC inc)
 ament_target_dependencies(qtest rclcpp std_msgs)
 
+add_executable(usage src/usage.cpp)
+target_include_directories(usage PUBLIC inc)
+ament_target_dependencies(usage rclcpp std_msgs)
+
 
 
 # add CUDA
@@ -109,11 +113,22 @@ TARGET_LINK_LIBRARIES(
   ${CUDA_LIB_cuMini}
 )
 
+ADD_DEPENDENCIES(
+  usage 
+  ${CUDA_LIB_cuGpuMgrIntf}
+  ${CUDA_LIB_cuMini}
+)
 
+TARGET_LINK_LIBRARIES(
+  usage 
+  ${CUDA_LIB_cuGpuMgrIntf}
+  ${CUDA_LIB_cuMini}
+)
 
 install(TARGETS
   main
   qtest
+  usage
   ${CUDA_LIB_cuGpuMgrIntf}
   DESTINATION lib/${PROJECT_NAME}
 )

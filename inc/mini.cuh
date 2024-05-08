@@ -19,6 +19,7 @@ extern int mini_GetResult(void);
 extern void mini_Deinit(void);
 extern void startNoiseKernel(int, int, void *);
 extern void launchSliceTest(float *);
+extern float get_gpu_utilization();
 
 
 #endif

@@ -13,6 +13,10 @@ qtest:
 	LD_PRELOAD=${PATH_TO_LIBGPUMGRINTF} \
 	ros2 run ros2_gpu qtest
 
+usage:
+	LD_PRELOAD=${PATH_TO_LIBGPUMGRINTF} \
+	ros2 run ros2_gpu usage 
+
 wake_loop:
 	ros2 topic pub /while_loop std_msgs/msg/Int32 "{data: 1}" --once
 
