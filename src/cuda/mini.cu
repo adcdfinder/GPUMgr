@@ -31,16 +31,17 @@ __global__ void noiseKernel(uint32_t smID){
 
 }
 
-
+// extern __shared__ int shared[];
 __global__ void vectorAddPartial(const float* A, const float* B, float* C, int offset, int sliceSize)
 {
    int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
- 
+    // shared[i] = i;
+    // __syncthreads();
    if (i < offset + sliceSize)
    {
        C[i] = A[i] + B[i];
    }else{
-       C[i] = A[i] + B[i];
+       C[i] = A[i] - B[i];
    }
 }
 
@@ -375,83 +376,30 @@ void launchNoiseTest(bool bPolicyApplied , float * elapse){
 
 void launchSliceTest(float * elapse){
 
+
+  cudaStream_t *workStream = (cudaStream_t *)malloc(  sizeof(cudaStream_t *));
   cudaEvent_t start, stop;
+  int numSlices = 4;
+  int totalSize = 1024;
+ 
+    // 查询流的优先级范围
+   int leastPriority, greatestPriority;
+   cudaDeviceGetStreamPriorityRange(&leastPriority, &greatestPriority);
+ 
+  cudaStreamCreateWithPriority(&(workStream[0]),cudaStreamDefault, greatestPriority);
+  
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
   cudaEventQuery(start);
  
-  int numElements = 1024; // 总元素数量
-  int numSlices = 4;      // 切片数量
-  int sliceSize = numElements / numSlices; // 每个切片的大小
-  size_t size = numElements * sizeof(float);
  
-   // 分配和初始化主机内存
-   float *h_A = (float *)malloc(size);
-   float *h_B = (float *)malloc(size);
-   float *h_C = (float *)malloc(size);
- 
-   for (int i = 0; i < numElements; ++i)
-   {
-       h_A[i] = rand() / (float)RAND_MAX;
-       h_B[i] = rand() / (float)RAND_MAX;
-   }
- 
-   // 分配设备内存
-   float *d_A = nullptr;
-   float *d_B = nullptr;
-   float *d_C = nullptr;
-   cudaMalloc((void **)&d_A, size);
-   cudaMalloc((void **)&d_B, size);
-   cudaMalloc((void **)&d_C, size);
- 
-   // 复制数据从主机到设备内存
-   cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
-   cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
- 
-   // 查询流的优先级范围
-   int leastPriority, greatestPriority;
-   cudaDeviceGetStreamPriorityRange(&leastPriority, &greatestPriority);
- 
-   // 创建具有不同优先级的流
-   cudaStream_t streams[numSlices];
-   for (int i = 0; i < numSlices; i++) {
-       int priority = (i % 2 == 0) ? greatestPriority : leastPriority; // 交替设置优先级
-       cudaStreamCreateWithPriority(&streams[i], cudaStreamNonBlocking, priority);
-   }
- 
-   // 执行向量加法，每个切片使用不同的流
-   int blocksize = 256;
-   int gridsize = 1;
-  //  void *funcPointer = vectorAddPartial;
-   cudaOccupancyMaxPotentialBlockSize(&gridsize, &blocksize, &vectorAddPartial, 0, 0);
-   printf("The grid size is %d \n", gridsize);
-   printf("The block size is %d \n", blocksize);
-   int threadsPerBlock = 256;
-   for (int slice = 0; slice < numSlices; slice++) {
-       int offset = slice * sliceSize;
-       int blocksPerGrid = (sliceSize + threadsPerBlock - 1) / threadsPerBlock;
-       vectorAddPartial<<<blocksPerGrid, threadsPerBlock, 0, streams[slice]>>>(d_A, d_B, d_C, offset, sliceSize);
-   }
- 
-   // 等待所有流完成
-   for (int i = 0; i < numSlices; i++) {
-       cudaStreamSynchronize(streams[i]);
-   }
+  mini_AddXandY1_Affinity(nullptr, workStream ,totalSize / numSlices, numSlices);
+
+  cudaDeviceSynchronize();
  
    // 复制结果从设备到主机内存
-   cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
- 
-   // 验证结果
-   for (int i = 0; i < numElements; ++i)
-   {
-       if (fabs(h_A[i] + h_B[i] - h_C[i]) > 1e-5)
-       {
-           std::cerr << "Result verification failed at element " << i << std::endl;
-           exit(EXIT_FAILURE);
-       }
-   }
- 
+
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(elapse, start, stop);
@@ -459,18 +407,6 @@ void launchSliceTest(float * elapse){
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
-   // 释放流和内存
-   for (int i = 0; i < numSlices; i++) {
-       cudaStreamDestroy(streams[i]);
-   }
-   cudaFree(d_A);
-   cudaFree(d_B);
-   cudaFree(d_C);
-   free(h_A);
-   free(h_B);
-   free(h_C);
-
- 
 }
 
 #ifdef TEST_DEBUG
