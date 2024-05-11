@@ -377,24 +377,30 @@ void launchNoiseTest(bool bPolicyApplied , float * elapse){
 void launchSliceTest(float * elapse){
 
 
-  cudaStream_t *workStream = (cudaStream_t *)malloc(  sizeof(cudaStream_t *));
-  cudaEvent_t start, stop;
   int numSlices = 4;
   int totalSize = 1024;
+  cudaStream_t *workStreams[numSlices];
+  cudaEvent_t start, stop;
  
     // 查询流的优先级范围
    int leastPriority, greatestPriority;
    cudaDeviceGetStreamPriorityRange(&leastPriority, &greatestPriority);
  
-  cudaStreamCreateWithPriority(&(workStream[0]),cudaStreamDefault, greatestPriority);
+  for(int i = 0; i < numSlices ; i++){
+
+    workStreams[i] = (cudaStream_t *)malloc(  sizeof(cudaStream_t *));
+    cudaStreamCreateWithPriority((workStreams[i]),cudaStreamDefault, greatestPriority);
+  }
   
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
   cudaEventQuery(start);
  
- 
-  mini_AddXandY1_Affinity(nullptr, workStream ,totalSize / numSlices, numSlices);
+  for(int i = 0 ; i < numSlices ; i++){
+
+    mini_AddXandY1_Affinity(nullptr, workStreams[i] ,totalSize / numSlices, 1);
+  }
 
   cudaDeviceSynchronize();
  
@@ -406,6 +412,9 @@ void launchSliceTest(float * elapse){
 
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
+  for(int i = 0; i < numSlices ; i++){
+    cudaStreamDestroy(*(workStreams[i]));
+  }
 
 }
 
